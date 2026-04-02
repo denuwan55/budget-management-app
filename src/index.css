@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+/* Safe area padding for bottom nav on notched iPhones */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Prevent text selection on interactive elements */
+button, a {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Dark mode input styling */
+input[type="date"] {
+  color-scheme: dark;
+}
