@@ -1,6 +1,7 @@
 import { useBudgetData } from '../../hooks/useBudgetData';
 import { BudgetSummaryCard } from './BudgetSummaryCard';
 import { UpcomingObligations } from './UpcomingObligations';
+import { validateMonth } from '../../engine/budgetValidator';
 import { formatCurrency } from '../../lib/formatters';
 import { EmptyState } from '../shared/EmptyState';
 
@@ -11,11 +12,19 @@ export function DashboardScreen() {
     return <EmptyState icon={'\uD83D\uDCCA'} title="No Month Set Up" subtitle="Go to Check tab to set up your first month." />;
   }
 
+  const validation = validateMonth(data.month.totalAvailable, data.obligations, data.month.savingsTarget);
+
   return (
     <div className="p-6 pt-8 space-y-4">
       <h1 className="text-xl font-bold">Dashboard</h1>
 
       <BudgetSummaryCard data={data} />
+
+      {validation.warnings.map((w, i) => (
+        <div key={i} className="bg-yellow-500/10 rounded-2xl p-3">
+          <p className="text-sm text-yellow-400">{w}</p>
+        </div>
+      ))}
 
       {data.overdueObligations.length > 0 && (
         <div className="bg-orange-500/10 rounded-2xl p-4">

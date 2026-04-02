@@ -8,7 +8,7 @@ interface ImpactDisplayProps {
 
 export function ImpactDisplay({ result }: ImpactDisplayProps) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 verdict-enter">
       <VerdictBadge verdict={result.verdict} />
 
       <div className="bg-gray-900 rounded-2xl p-4 space-y-3">
