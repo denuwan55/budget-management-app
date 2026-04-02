@@ -44,4 +44,9 @@ export const monthRepository = {
   async getByYearMonth(yearMonth: string): Promise<Month | undefined> {
     return db.months.where('yearMonth').equals(yearMonth).first();
   },
+
+  async getRecent(count: number = 6): Promise<Month[]> {
+    const months = await db.months.orderBy('yearMonth').reverse().limit(count).toArray();
+    return months.reverse();
+  },
 };

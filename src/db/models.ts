@@ -26,6 +26,7 @@ export interface Purchase {
   monthId: number;
   amount: number;
   description: string;
+  category?: string;
   matchedObligationId?: number;
   createdAt: string;
   updatedAt: string;

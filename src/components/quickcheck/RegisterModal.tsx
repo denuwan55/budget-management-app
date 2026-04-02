@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Modal } from '../shared/Modal';
 import { purchaseRepository } from '../../db/repositories/purchaseRepository';
 import { formatCurrency } from '../../lib/formatters';
+import { CATEGORIES, CATEGORY_COLORS, type Category } from '../../db/categories';
 import type { Obligation } from '../../db/models';
 
 interface RegisterModalProps {
@@ -18,13 +19,21 @@ export function RegisterModal({
 }: RegisterModalProps) {
   const [description, setDescription] = useState('');
   const [matchedId, setMatchedId] = useState<number | null>(null);
+  const [category, setCategory] = useState<Category | undefined>(undefined);
 
   useEffect(() => {
     if (open) {
       setDescription('');
       setMatchedId(null);
+      setCategory(undefined);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (matchedId) {
+      setCategory('Bills');
+    }
+  }, [matchedId]);
 
   const suggestions = pendingObligations.filter((o) => {
     const ratio = amount / o.amountPlanned;
@@ -36,10 +45,10 @@ export function RegisterModal({
 
     if (matchedId) {
       await purchaseRepository.registerWithObligation(
-        monthId, amount, description.trim(), matchedId
+        monthId, amount, description.trim(), matchedId, category
       );
     } else {
-      await purchaseRepository.register(monthId, amount, description.trim());
+      await purchaseRepository.register(monthId, amount, description.trim(), category);
     }
 
     onRegistered();
@@ -58,6 +67,25 @@ export function RegisterModal({
             autoFocus
             className="w-full bg-gray-800 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm text-gray-400 mb-1">Category</label>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c}
+                onClick={() => setCategory(category === c ? undefined : c)}
+                className={`px-3 py-1.5 rounded-full text-sm whitespace-nowrap transition-colors ${
+                  category === c
+                    ? CATEGORY_COLORS[c]
+                    : 'bg-gray-800 text-gray-400'
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
 
         {suggestions.length > 0 && (

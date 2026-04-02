@@ -12,11 +12,13 @@ export type PurchaseFilter = 'all' | 'discretionary' | 'obligations';
 export function PurchasesScreen() {
   const data = useBudgetData();
   const [filter, setFilter] = useState<PurchaseFilter>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const filtered = data.purchases.filter((p) => {
-    if (filter === 'discretionary') return !p.matchedObligationId;
-    if (filter === 'obligations') return !!p.matchedObligationId;
+    if (filter === 'discretionary' && p.matchedObligationId) return false;
+    if (filter === 'obligations' && !p.matchedObligationId) return false;
+    if (categoryFilter && p.category !== categoryFilter) return false;
     return true;
   });
 
@@ -37,7 +39,12 @@ export function PurchasesScreen() {
     <div className="p-6 pt-8">
       <h1 className="text-xl font-bold mb-4">Purchases</h1>
 
-      <PurchaseFilterBar filter={filter} onChange={setFilter} />
+      <PurchaseFilterBar
+        filter={filter}
+        onChange={setFilter}
+        categoryFilter={categoryFilter}
+        onCategoryChange={setCategoryFilter}
+      />
 
       <div className="flex justify-between items-center my-3">
         <span className="text-sm text-gray-400">Total</span>

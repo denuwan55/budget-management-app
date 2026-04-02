@@ -2,9 +2,10 @@ import { NavLink } from 'react-router-dom';
 
 const tabs = [
   { to: '/', label: 'Check', icon: '\u26A1' },
-  { to: '/dashboard', label: 'Dashboard', icon: '\uD83D\uDCCA' },
+  { to: '/dashboard', label: 'Home', icon: '\uD83D\uDCCA' },
   { to: '/obligations', label: 'Bills', icon: '\uD83D\uDCCB' },
-  { to: '/purchases', label: 'Purchases', icon: '\uD83D\uDED2' },
+  { to: '/purchases', label: 'Buys', icon: '\uD83D\uDED2' },
+  { to: '/trends', label: 'Trends', icon: '\uD83D\uDCC8' },
   { to: '/settings', label: 'Settings', icon: '\u2699\uFE0F' },
 ];
 
@@ -23,7 +24,7 @@ export function BottomNav() {
               }`
             }
           >
-            <span className="text-xl">{tab.icon}</span>
+            <span className="text-lg">{tab.icon}</span>
             <span>{tab.label}</span>
           </NavLink>
         ))}

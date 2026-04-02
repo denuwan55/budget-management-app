@@ -16,6 +16,16 @@ export class MindfulSpendDB extends Dexie {
       purchases: '++id, monthId, matchedObligationId, createdAt',
       settings: '&key',
     });
+
+    this.version(2).stores({
+      purchases: '++id, monthId, matchedObligationId, category, createdAt',
+    }).upgrade(tx => {
+      return tx.table('purchases').toCollection().modify(purchase => {
+        if (purchase.matchedObligationId && !purchase.category) {
+          purchase.category = 'Bills';
+        }
+      });
+    });
   }
 }
 

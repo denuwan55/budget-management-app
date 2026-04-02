@@ -5,13 +5,15 @@ export const purchaseRepository = {
   async register(
     monthId: number,
     amount: number,
-    description: string
+    description: string,
+    category?: string
   ): Promise<Purchase> {
     const now = new Date().toISOString();
     const id = await db.purchases.add({
       monthId,
       amount,
       description,
+      category,
       createdAt: now,
       updatedAt: now,
     });
@@ -22,7 +24,8 @@ export const purchaseRepository = {
     monthId: number,
     amount: number,
     description: string,
-    obligationId: number
+    obligationId: number,
+    category: string = 'Bills'
   ): Promise<Purchase> {
     const now = new Date().toISOString();
 
@@ -31,6 +34,7 @@ export const purchaseRepository = {
         monthId,
         amount,
         description,
+        category,
         matchedObligationId: obligationId,
         createdAt: now,
         updatedAt: now,
@@ -59,9 +63,13 @@ export const purchaseRepository = {
     return all.filter((p) => !p.matchedObligationId);
   },
 
+  async getByMonthIds(monthIds: number[]): Promise<Purchase[]> {
+    return db.purchases.where('monthId').anyOf(monthIds).toArray();
+  },
+
   async update(
     id: number,
-    data: Partial<Pick<Purchase, 'amount' | 'description'>>
+    data: Partial<Pick<Purchase, 'amount' | 'description' | 'category'>>
   ): Promise<void> {
     await db.purchases.update(id, {
       ...data,
