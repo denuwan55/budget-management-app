@@ -3,7 +3,8 @@
     "allow": [
       "Bash(npm install:*)",
       "Bash(npx vitest:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(cat /Users/lahirudw/Downloads/budget-management-app/.github/workflows/*.yml)"
     ]
   }
 }
