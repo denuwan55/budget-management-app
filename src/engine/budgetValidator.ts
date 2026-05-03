@@ -1,5 +1,6 @@
 import type { Obligation } from '../db/models';
 import { daysRemainingInMonth } from './dateHelpers';
+import { formatCurrency } from '../lib/formatters';
 
 export interface ValidationResult {
   warnings: string[];
@@ -30,7 +31,7 @@ export function validateMonth(
 
   if (totalCommitted > totalAvailable) {
     warnings.push(
-      `Your commitments ($${Math.round(totalCommitted)}) exceed your total available ($${Math.round(totalAvailable)}). You have no discretionary budget.`
+      `Your commitments (${formatCurrency(totalCommitted)}) exceed your total available (${formatCurrency(totalAvailable)}). You have no discretionary budget.`
     );
   }
 
@@ -39,7 +40,7 @@ export function validateMonth(
     const daysLeft = daysRemainingInMonth();
     const daily = freePool / daysLeft;
     if (daily < 5) {
-      warnings.push(`Your daily budget is very low ($${daily.toFixed(2)}/day).`);
+      warnings.push(`Your daily budget is very low (${formatCurrency(daily)}/day).`);
     }
   }
 

@@ -1,9 +1,9 @@
 import type { Verdict, ObligationAtRisk } from './types';
 
 function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-LK', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'LKR',
     maximumFractionDigits: 0,
   }).format(amount);
 }
@@ -31,7 +31,7 @@ export function generateVerdict(
     return {
       severity: 'savings_risk',
       headline: 'This eats into savings.',
-      detail: `You'd lose ${formatCurrency(savingsAtRisk)} from your savings target. Your discretionary budget would be at $0 for the rest of the month.`,
+      detail: `You'd lose ${formatCurrency(savingsAtRisk)} from your savings target. Your discretionary budget would be at ${formatCurrency(0)} for the rest of the month.`,
     };
   }
 

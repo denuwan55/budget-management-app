@@ -34,7 +34,7 @@ export function CurrencyInput({
 
   return (
     <div className={`flex items-center gap-1 ${className}`}>
-      <span className={`text-gray-400 ${large ? 'text-4xl' : 'text-xl'}`}>$</span>
+      <span className={`text-gray-400 ${large ? 'text-4xl' : 'text-xl'}`}>Rs</span>
       <input
         ref={inputRef}
         type="text"
