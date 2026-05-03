@@ -58,22 +58,22 @@ describe('Realistic scenario: mid-month with obligations and purchases', () => {
   });
 
   it('computes free pool correctly', () => {
-    // 3000 - 1280 - 300 (savings) - 65 = 1355
-    expect(freePool(3000, obligations, 300, purchases)).toBe(1355);
+    // 3000 - 1280(pending) - 50(Gym paid) - 300(savings) - 65(discretionary) = 1305
+    expect(freePool(3000, obligations, 300, purchases)).toBe(1305);
   });
 
   it('computes daily budget correctly', () => {
-    const free = freePool(3000, obligations, 300, purchases); // 1355
-    expect(dailyBudget(free, 16)).toBeCloseTo(84.69, 1);
+    const free = freePool(3000, obligations, 300, purchases); // 1305
+    expect(dailyBudget(free, 16)).toBeCloseTo(81.56, 1);
   });
 
   it('impact check for a $200 discretionary purchase', () => {
     const result = checkImpact(200, 3000, obligations, 300, purchases, today);
-    expect(result.currentFreePool).toBe(1355);
-    expect(result.proposedFreePool).toBe(1155);
+    expect(result.currentFreePool).toBe(1305);
+    expect(result.proposedFreePool).toBe(1105);
     expect(result.savingsIntact).toBe(true);
     expect(result.obligationsIntact).toBe(true);
-    // drop = (84.69 - 72.19) / 84.69 ≈ 14.7% — comfortable
+    // drop ≈ 15% — comfortable
     expect(result.verdict.severity).toBe('comfortable');
   });
 });

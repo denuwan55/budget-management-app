@@ -18,6 +18,9 @@ export function BudgetSummaryCard({ data }: Props) {
 
       <div className="border-t border-gray-800 pt-4 space-y-2">
         <SummaryRow label="Total available" amount={data.month?.totalAvailable ?? 0} />
+        {data.billsPaid > 0 && (
+          <SummaryRow label="Bills paid" amount={-data.billsPaid} />
+        )}
         <SummaryRow label="Obligations pending" amount={-data.obligationsRemaining} />
         <SummaryRow label="Savings target" amount={-(data.month?.savingsTarget ?? 0)} />
         <SummaryRow label="Discretionary spent" amount={-data.discretionarySpent} />

@@ -9,6 +9,12 @@ export function obligationsRemaining(obligations: Obligation[]): number {
     .reduce((sum, o) => sum + o.amountPlanned, 0);
 }
 
+export function obligationsPaidAmount(obligations: Obligation[]): number {
+  return obligations
+    .filter((o) => o.status === 'paid')
+    .reduce((sum, o) => sum + (o.amountActual ?? o.amountPlanned), 0);
+}
+
 export function discretionarySpent(purchases: Purchase[]): number {
   return purchases
     .filter((p) => !p.matchedObligationId)
@@ -24,6 +30,7 @@ export function freePool(
   return (
     totalAvailable -
     obligationsRemaining(obligations) -
+    obligationsPaidAmount(obligations) -
     savingsTarget -
     discretionarySpent(purchases)
   );

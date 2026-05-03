@@ -5,6 +5,7 @@ import {
   freePool,
   dailyBudget,
   obligationsRemaining,
+  obligationsPaidAmount,
   discretionarySpent,
 } from '../engine/budgetCalculator';
 import { daysRemainingInMonth } from '../engine/dateHelpers';
@@ -17,6 +18,7 @@ export interface BudgetData {
   freePool: number;
   dailyBudget: number;
   obligationsRemaining: number;
+  billsPaid: number;
   discretionarySpent: number;
   daysRemaining: number;
   pendingObligations: Obligation[];
@@ -67,6 +69,7 @@ export function useBudgetData(): BudgetData {
     freePool: free,
     dailyBudget: daily,
     obligationsRemaining: obligationsRemaining(obligations),
+    billsPaid: obligationsPaidAmount(obligations),
     discretionarySpent: discretionarySpent(purchases),
     daysRemaining: daysLeft,
     pendingObligations: pending,

@@ -42,11 +42,12 @@ describe('edge cases', () => {
     expect(result.verdict.severity).toBe('savings_risk');
   });
 
-  it('all obligations paid — full amount is free', () => {
+  it('paid obligations reduce free pool by actual amount paid', () => {
     const obligations = [
       makeObligation({ amountPlanned: 1500, status: 'paid', amountActual: 1500 }),
     ];
-    expect(freePool(3000, obligations, 500, [])).toBe(2500);
+    // 3000 - 0(pending) - 1500(paid) - 500(savings) - 0 = 1000
+    expect(freePool(3000, obligations, 500, [])).toBe(1000);
   });
 
   it('validation catches overcommitment', () => {

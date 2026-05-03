@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   obligationsRemaining,
+  obligationsPaidAmount,
   discretionarySpent,
   freePool,
   dailyBudget,
@@ -81,27 +82,88 @@ describe('discretionarySpent', () => {
   });
 });
 
+describe('obligationsPaidAmount', () => {
+  it('sums amountActual for paid obligations', () => {
+    const obligations = [
+      makeObligation({ id: 1, status: 'paid', amountActual: 480 }),
+      makeObligation({ id: 2, status: 'paid', amountActual: 200 }),
+      makeObligation({ id: 3, status: 'pending', amountPlanned: 300 }),
+    ];
+    expect(obligationsPaidAmount(obligations)).toBe(680);
+  });
+
+  it('falls back to amountPlanned when amountActual is undefined', () => {
+    const obligations = [
+      makeObligation({ status: 'paid', amountPlanned: 500, amountActual: undefined }),
+    ];
+    expect(obligationsPaidAmount(obligations)).toBe(500);
+  });
+
+  it('ignores pending and cancelled obligations', () => {
+    const obligations = [
+      makeObligation({ status: 'pending', amountPlanned: 300 }),
+      makeObligation({ status: 'cancelled', amountPlanned: 100 }),
+    ];
+    expect(obligationsPaidAmount(obligations)).toBe(0);
+  });
+
+  it('returns 0 for empty array', () => {
+    expect(obligationsPaidAmount([])).toBe(0);
+  });
+});
+
 describe('freePool', () => {
-  it('calculates free pool correctly', () => {
+  it('calculates free pool correctly with pending obligations and discretionary spend', () => {
     const obligations = [makeObligation({ amountPlanned: 500, status: 'pending' })];
     const purchases = [makePurchase({ amount: 100 })];
-    // 2000 - 500 (obligations) - 200 (savings) - 100 (discretionary) = 1200
+    // 2000 - 500 (pending) - 0 (paid) - 200 (savings) - 100 (discretionary) = 1200
     expect(freePool(2000, obligations, 200, purchases)).toBe(1200);
   });
 
   it('returns negative value when overcommitted', () => {
     const obligations = [makeObligation({ amountPlanned: 1500, status: 'pending' })];
-    // 1000 - 1500 - 200 - 0 = -700
+    // 1000 - 1500 - 0 - 200 - 0 = -700
     expect(freePool(1000, obligations, 200, [])).toBe(-700);
   });
 
-  it('excludes paid obligations from calculation', () => {
-    const obligations = [
-      makeObligation({ amountPlanned: 300, status: 'pending' }),
-      makeObligation({ amountPlanned: 200, status: 'paid' }),
+  it('subtracts paid obligation amounts so paying a bill does not inflate free pool', () => {
+    // Before paying: freePool = 1000 - 300(pending) - 0(paid) - 0 = 700
+    const before = [
+      makeObligation({ id: 1, amountPlanned: 300, status: 'pending' }),
     ];
-    // 1000 - 300 - 0 - 0 = 700
-    expect(freePool(1000, obligations, 0, [])).toBe(700);
+    expect(freePool(1000, before, 0, [])).toBe(700);
+
+    // After paying exactly: freePool should stay the same (was reserved, now spent)
+    const after = [
+      makeObligation({ id: 1, amountPlanned: 300, status: 'paid', amountActual: 300 }),
+    ];
+    expect(freePool(1000, after, 0, [])).toBe(700);
+  });
+
+  it('increases free pool when obligation paid for less than planned', () => {
+    const obligations = [
+      makeObligation({ amountPlanned: 500, status: 'paid', amountActual: 400 }),
+    ];
+    // 2000 - 0 (pending) - 400 (paid) - 200 (savings) - 0 = 1400 (+100 saved on bill)
+    expect(freePool(2000, obligations, 200, [])).toBe(1400);
+  });
+
+  it('decreases free pool when obligation paid for more than planned', () => {
+    const obligations = [
+      makeObligation({ amountPlanned: 500, status: 'paid', amountActual: 600 }),
+    ];
+    // 2000 - 0 (pending) - 600 (paid) - 200 (savings) - 0 = 1200 (-100 overpaid)
+    expect(freePool(2000, obligations, 200, [])).toBe(1200);
+  });
+
+  it('handles mixed pending and paid obligations with discretionary spend', () => {
+    const obligations = [
+      makeObligation({ id: 1, amountPlanned: 500, status: 'paid', amountActual: 500 }),
+      makeObligation({ id: 2, amountPlanned: 300, status: 'pending' }),
+    ];
+    const purchases = [makePurchase({ amount: 100 })];
+    // 2000 - 300(pending) - 500(paid) - 200(savings) - 100(discretionary) = 900
+    expect(freePool(2000, obligations, 200, purchases)).toBe(900);
   });
 });
 
