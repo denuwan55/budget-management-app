@@ -1,4 +1,5 @@
 import type { Obligation } from '../db/models';
+import { cycleStartDate, cycleEndDate, formatDate } from './dateHelpers';
 
 export interface GeneratedObligation {
   name: string;
@@ -9,85 +10,76 @@ export interface GeneratedObligation {
 }
 
 /**
- * Generate obligation instances for a new month based on
- * recurring obligations from the previous month.
+ * Generate obligation instances for a new cycle (month) based on
+ * recurring obligations from the previous cycle.
+ *
+ * The cycle window is defined by [cycleStart, cycleEnd] derived from
+ * `newYearMonth` + `anchorDay`. Generated dueDates always fall inside
+ * this window.
  */
 export function generateForNewMonth(
   previousObligations: Obligation[],
-  newYearMonth: string
+  newYearMonth: string,
+  anchorDay: number = 1
 ): GeneratedObligation[] {
-  const [yearStr, monthStr] = newYearMonth.split('-');
-  const year = parseInt(yearStr);
-  const month = parseInt(monthStr);
+  const cycleStart = cycleStartDate(newYearMonth, anchorDay);
+  const cycleEnd = cycleEndDate(newYearMonth, anchorDay);
 
   const recurring = previousObligations.filter((o) => o.isRecurring && o.recurrenceRule);
   const results: GeneratedObligation[] = [];
 
   for (const template of recurring) {
     const rule = template.recurrenceRule!;
-    const templateDate = new Date(
-      parseInt(template.dueDate.split('-')[0]),
-      parseInt(template.dueDate.split('-')[1]) - 1,
-      parseInt(template.dueDate.split('-')[2])
-    );
+    const templateDay = parseInt(template.dueDate.split('-')[2], 10);
 
     switch (rule) {
       case 'monthly': {
-        const lastDay = new Date(year, month, 0).getDate();
-        const day = Math.min(templateDate.getDate(), lastDay);
-        const dateStr = `${yearStr}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        results.push({
-          name: template.name,
-          amountPlanned: template.amountPlanned,
-          dueDate: dateStr,
-          isRecurring: true,
-          recurrenceRule: 'monthly',
-        });
-        break;
-      }
-
-      case 'weekly': {
-        const targetWeekday = templateDate.getDay();
-        const current = new Date(year, month - 1, 1);
-
-        while (current.getDay() !== targetWeekday) {
-          current.setDate(current.getDate() + 1);
-        }
-
-        while (current.getMonth() === month - 1) {
-          const d = String(current.getDate()).padStart(2, '0');
-          const m = String(month).padStart(2, '0');
+        // Place at templateDay of whichever calendar month falls inside the cycle.
+        // If templateDay >= anchorDay, it falls in cycleStart's month.
+        // If templateDay < anchorDay, it falls in cycleEnd's month.
+        const targetMonth =
+          templateDay >= anchorDay ? cycleStart : cycleEnd;
+        const lastDayOfTarget = new Date(
+          targetMonth.getFullYear(),
+          targetMonth.getMonth() + 1,
+          0
+        ).getDate();
+        const day = Math.min(templateDay, lastDayOfTarget);
+        const candidate = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), day);
+        if (candidate >= cycleStart && candidate <= cycleEnd) {
           results.push({
             name: template.name,
             amountPlanned: template.amountPlanned,
-            dueDate: `${yearStr}-${m}-${d}`,
+            dueDate: formatDate(candidate),
             isRecurring: true,
-            recurrenceRule: 'weekly',
+            recurrenceRule: 'monthly',
           });
-          current.setDate(current.getDate() + 7);
         }
         break;
       }
 
+      case 'weekly':
       case 'biweekly': {
+        const stepDays = rule === 'weekly' ? 7 : 14;
+        const templateDate = new Date(
+          parseInt(template.dueDate.split('-')[0], 10),
+          parseInt(template.dueDate.split('-')[1], 10) - 1,
+          templateDay
+        );
         const targetWeekday = templateDate.getDay();
-        const current = new Date(year, month - 1, 1);
-
+        const current = new Date(cycleStart);
         while (current.getDay() !== targetWeekday) {
           current.setDate(current.getDate() + 1);
         }
-
-        while (current.getMonth() === month - 1) {
-          const d = String(current.getDate()).padStart(2, '0');
-          const m = String(month).padStart(2, '0');
+        while (current <= cycleEnd) {
           results.push({
             name: template.name,
             amountPlanned: template.amountPlanned,
-            dueDate: `${yearStr}-${m}-${d}`,
+            dueDate: formatDate(current),
             isRecurring: true,
-            recurrenceRule: 'biweekly',
+            recurrenceRule: rule,
           });
-          current.setDate(current.getDate() + 14);
+          current.setDate(current.getDate() + stepDays);
         }
         break;
       }

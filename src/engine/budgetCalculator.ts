@@ -94,9 +94,10 @@ export function checkImpact(
   obligations: Obligation[],
   savingsTarget: number,
   purchases: Purchase[],
-  today: Date = new Date()
+  today: Date = new Date(),
+  daysRemaining?: number
 ): ImpactResult {
-  const daysLeft = daysRemainingInMonth(today);
+  const daysLeft = daysRemaining ?? daysRemainingInMonth(today);
 
   const currentFree = freePool(totalAvailable, obligations, savingsTarget, purchases);
   const currentDaily = dailyBudget(currentFree, daysLeft);

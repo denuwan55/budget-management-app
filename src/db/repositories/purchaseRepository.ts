@@ -88,4 +88,19 @@ export const purchaseRepository = {
     }
     await db.purchases.delete(id);
   },
+
+  async deleteAndAbsorb(id: number): Promise<void> {
+    const purchase = await db.purchases.get(id);
+    if (!purchase) return;
+    await db.transaction('rw', [db.purchases, db.months], async () => {
+      const month = await db.months.get(purchase.monthId);
+      if (month) {
+        await db.months.update(purchase.monthId, {
+          totalAvailable: month.totalAvailable - purchase.amount,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      await db.purchases.delete(id);
+    });
+  },
 };

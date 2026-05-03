@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useBudgetData } from '../../hooks/useBudgetData';
 import { checkImpact } from '../../engine/budgetCalculator';
 import { formatCurrency } from '../../lib/formatters';
-import { yearMonth } from '../../engine/dateHelpers';
+import { cycleYearMonth, cycleEndDate, startOfDay } from '../../engine/dateHelpers';
 import { db } from '../../db/database';
+import { getCycleAnchorDay } from '../../db/repositories/settingsRepository';
 import { CurrencyInput } from '../shared/CurrencyInput';
 import { ImpactDisplay } from './ImpactDisplay';
 import { RegisterModal } from './RegisterModal';
@@ -20,18 +21,27 @@ export function QuickCheckScreen() {
   const [showSetup, setShowSetup] = useState(false);
   const [showRollover, setShowRollover] = useState(false);
   const [previousMonth, setPreviousMonth] = useState<Month | null>(null);
+  const [nextYearMonth, setNextYearMonth] = useState<string>('');
+  const [nextAnchor, setNextAnchor] = useState<number>(25);
 
   useEffect(() => {
     if (!data.loading && !data.month) {
-      const now = new Date();
-      const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const prevYM = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
-      db.months.where('yearMonth').equals(prevYM).first().then((prev) => {
-        if (prev) {
-          setPreviousMonth(prev);
-          setShowRollover(true);
+      // No active month for today. Look for the most recent month — if today is
+      // past its cycle end, prompt rollover. Otherwise this is first-time setup.
+      (async () => {
+        const recent = await db.months.orderBy('yearMonth').reverse().limit(1).first();
+        const anchor = await getCycleAnchorDay();
+        const today = startOfDay(new Date());
+        if (recent) {
+          const prevEnd = cycleEndDate(recent.yearMonth, recent.anchorDay);
+          if (today > prevEnd) {
+            setPreviousMonth(recent);
+            setNextYearMonth(cycleYearMonth(new Date(), anchor));
+            setNextAnchor(anchor);
+            setShowRollover(true);
+          }
         }
-      });
+      })();
     }
   }, [data.loading, data.month]);
 
@@ -68,7 +78,8 @@ export function QuickCheckScreen() {
             open={showRollover}
             onClose={() => setShowRollover(false)}
             previousMonth={previousMonth}
-            newYearMonth={yearMonth()}
+            newYearMonth={nextYearMonth}
+            newAnchorDay={nextAnchor}
           />
         )}
       </div>
@@ -84,7 +95,9 @@ export function QuickCheckScreen() {
       data.month.totalAvailable,
       data.obligations,
       data.month.savingsTarget,
-      data.purchases
+      data.purchases,
+      new Date(),
+      data.daysRemaining
     );
     setImpact(result);
   };

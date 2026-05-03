@@ -5,7 +5,8 @@ export const monthRepository = {
   async getOrCreate(
     yearMonth: string,
     totalAvailable: number = 0,
-    savingsTarget: number = 0
+    savingsTarget: number = 0,
+    anchorDay: number = 1
   ): Promise<Month> {
     const existing = await db.months.where('yearMonth').equals(yearMonth).first();
     if (existing) return existing;
@@ -15,6 +16,7 @@ export const monthRepository = {
       yearMonth,
       totalAvailable,
       savingsTarget,
+      anchorDay,
       createdAt: now,
       updatedAt: now,
     });

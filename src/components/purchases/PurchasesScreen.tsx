@@ -6,6 +6,7 @@ import { PurchaseFilterBar } from './PurchaseFilterBar';
 import { EmptyState } from '../shared/EmptyState';
 import { formatCurrency } from '../../lib/formatters';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
+import type { Purchase } from '../../db/models';
 
 export type PurchaseFilter = 'all' | 'discretionary' | 'obligations';
 
@@ -13,7 +14,7 @@ export function PurchasesScreen() {
   const data = useBudgetData();
   const [filter, setFilter] = useState<PurchaseFilter>('all');
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState<Purchase | null>(null);
 
   const filtered = data.purchases.filter((p) => {
     if (filter === 'discretionary' && p.matchedObligationId) return false;
@@ -24,16 +25,25 @@ export function PurchasesScreen() {
 
   const total = filtered.reduce((sum, p) => sum + p.amount, 0);
 
-  const handleDelete = async () => {
-    if (deletingId) {
-      await purchaseRepository.delete(deletingId);
-      setDeletingId(null);
+  const handleGiveBack = async () => {
+    if (deleting?.id) {
+      await purchaseRepository.delete(deleting.id);
+      setDeleting(null);
+    }
+  };
+
+  const handleJustCut = async () => {
+    if (deleting?.id) {
+      await purchaseRepository.deleteAndAbsorb(deleting.id);
+      setDeleting(null);
     }
   };
 
   if (!data.month) {
-    return <EmptyState icon={'\uD83D\uDED2'} title="No Month Set Up" subtitle="Go to Check tab to set up your first month." />;
+    return <EmptyState icon={'🛒'} title="No Month Set Up" subtitle="Go to Check tab to set up your first month." />;
   }
+
+  const isDiscretionary = deleting !== null && !deleting.matchedObligationId;
 
   return (
     <div className="p-6 pt-8">
@@ -52,28 +62,42 @@ export function PurchasesScreen() {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState icon={'\uD83D\uDED2'} title="No Purchases" subtitle="Registered purchases will appear here." />
+        <EmptyState icon={'🛒'} title="No Purchases" subtitle="Registered purchases will appear here." />
       ) : (
         <div className="bg-gray-900 rounded-2xl overflow-hidden divide-y divide-gray-800">
           {filtered.map((p) => (
             <PurchaseRow
               key={p.id}
               purchase={p}
-              onDelete={() => setDeletingId(p.id!)}
+              onDelete={() => setDeleting(p)}
             />
           ))}
         </div>
       )}
 
-      <ConfirmDialog
-        open={deletingId !== null}
-        onClose={() => setDeletingId(null)}
-        onConfirm={handleDelete}
-        title="Delete Purchase"
-        message="This will restore the amount to your free pool. If this was matched to an obligation, the obligation will be reset to pending."
-        confirmLabel="Delete"
-        danger
-      />
+      {isDiscretionary ? (
+        <ConfirmDialog
+          open={deleting !== null}
+          onClose={() => setDeleting(null)}
+          onConfirm={handleJustCut}
+          onSecondary={handleGiveBack}
+          title="Delete Purchase"
+          message={`Remove ${formatCurrency(deleting!.amount)} spend. "Give Back" restores the amount to your free pool. "Just Cut" removes the record but keeps the money gone (your total budget shrinks).`}
+          confirmLabel="Just Cut"
+          secondaryLabel="Give Back"
+          danger
+        />
+      ) : (
+        <ConfirmDialog
+          open={deleting !== null}
+          onClose={() => setDeleting(null)}
+          onConfirm={handleGiveBack}
+          title="Delete Purchase"
+          message="This will restore the amount to your free pool. The matched obligation will be reset to pending."
+          confirmLabel="Delete"
+          danger
+        />
+      )}
     </div>
   );
 }

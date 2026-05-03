@@ -15,7 +15,8 @@ export async function performRollover(
   newYearMonth: string,
   newTotalAvailable: number,
   newSavingsTarget: number,
-  carryOver: boolean
+  carryOver: boolean,
+  anchorDay: number
 ): Promise<RolloverResult> {
   const previousObligations = await db.obligations.where('monthId').equals(previousMonth.id!).toArray();
   const previousPurchases = await db.purchases.where('monthId').equals(previousMonth.id!).toArray();
@@ -33,11 +34,12 @@ export async function performRollover(
     yearMonth: newYearMonth,
     totalAvailable: newTotalAvailable + carriedOverAmount,
     savingsTarget: newSavingsTarget,
+    anchorDay,
     createdAt: now,
     updatedAt: now,
   });
 
-  const generated = generateForNewMonth(previousObligations, newYearMonth);
+  const generated = generateForNewMonth(previousObligations, newYearMonth, anchorDay);
   for (const g of generated) {
     await obligationRepository.add(newMonthId as number, {
       name: g.name,

@@ -10,7 +10,8 @@ export interface ValidationResult {
 export function validateMonth(
   totalAvailable: number,
   obligations: Obligation[],
-  savingsTarget: number
+  savingsTarget: number,
+  daysRemaining?: number
 ): ValidationResult {
   const warnings: string[] = [];
   const errors: string[] = [];
@@ -37,7 +38,7 @@ export function validateMonth(
 
   const freePool = totalAvailable - totalCommitted;
   if (freePool > 0) {
-    const daysLeft = daysRemainingInMonth();
+    const daysLeft = daysRemaining ?? daysRemainingInMonth();
     const daily = freePool / daysLeft;
     if (daily < 5) {
       warnings.push(`Your daily budget is very low (${formatCurrency(daily)}/day).`);

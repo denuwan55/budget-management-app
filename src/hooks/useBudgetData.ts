@@ -1,6 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/database';
-import { yearMonth as getYearMonth } from '../engine/dateHelpers';
 import {
   freePool,
   dailyBudget,
@@ -8,7 +7,12 @@ import {
   obligationsPaidAmount,
   discretionarySpent,
 } from '../engine/budgetCalculator';
-import { daysRemainingInMonth } from '../engine/dateHelpers';
+import {
+  cycleStartDate,
+  cycleEndDate,
+  daysRemainingInCycle,
+  startOfDay,
+} from '../engine/dateHelpers';
 import type { Month, Obligation, Purchase } from '../db/models';
 
 export interface BudgetData {
@@ -27,10 +31,27 @@ export interface BudgetData {
   loading: boolean;
 }
 
-export function useBudgetData(): BudgetData {
-  const ym = getYearMonth();
+/**
+ * Find the most recent Month whose cycle window contains today.
+ * Each Month carries its own anchorDay so anchor changes don't disturb running cycles.
+ */
+function findActiveMonth(months: Month[], today: Date): Month | undefined {
+  const todayStart = startOfDay(today);
+  for (const m of months) {
+    const start = cycleStartDate(m.yearMonth, m.anchorDay);
+    const end = cycleEndDate(m.yearMonth, m.anchorDay);
+    if (todayStart >= start && todayStart <= end) return m;
+  }
+  return undefined;
+}
 
-  const month = useLiveQuery(() => db.months.where('yearMonth').equals(ym).first());
+export function useBudgetData(): BudgetData {
+  const recentMonths = useLiveQuery(() =>
+    db.months.orderBy('yearMonth').reverse().limit(3).toArray()
+  );
+
+  const today = new Date();
+  const month = recentMonths ? findActiveMonth(recentMonths, today) : undefined;
 
   const allObligations = useLiveQuery(
     () => (month?.id ? db.obligations.where('monthId').equals(month.id).sortBy('dueDate') : []),
@@ -44,11 +65,12 @@ export function useBudgetData(): BudgetData {
 
   const obligations = allObligations ?? [];
   const purchases = allPurchases ?? [];
-  const loading = month === undefined && allObligations === undefined;
+  const loading = recentMonths === undefined;
 
-  const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
-  const daysLeft = daysRemainingInMonth(today);
+  const daysLeft = month
+    ? daysRemainingInCycle(today, month.yearMonth, month.anchorDay)
+    : 1;
 
   const free = month
     ? freePool(month.totalAvailable, obligations, month.savingsTarget, purchases)

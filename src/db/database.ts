@@ -26,6 +26,15 @@ export class MindfulSpendDB extends Dexie {
         }
       });
     });
+
+    this.version(3).stores({
+      months: '++id, &yearMonth',
+    }).upgrade(tx => {
+      // Existing months were calendar-aligned; preserve behavior with anchorDay = 1.
+      return tx.table('months').toCollection().modify(month => {
+        if (month.anchorDay === undefined) month.anchorDay = 1;
+      });
+    });
   }
 }
 

@@ -4,6 +4,7 @@ import { CurrencyInput } from '../shared/CurrencyInput';
 import { performRollover } from '../../engine/monthRollover';
 import { freePool } from '../../engine/budgetCalculator';
 import { formatCurrency } from '../../lib/formatters';
+import { cycleStartDate, cycleEndDate, formatDate } from '../../engine/dateHelpers';
 import { db } from '../../db/database';
 import type { Month } from '../../db/models';
 
@@ -12,9 +13,12 @@ interface Props {
   onClose: () => void;
   previousMonth: Month;
   newYearMonth: string;
+  newAnchorDay: number;
 }
 
-export function MonthRolloverModal({ open, onClose, previousMonth, newYearMonth }: Props) {
+export function MonthRolloverModal({
+  open, onClose, previousMonth, newYearMonth, newAnchorDay,
+}: Props) {
   const [totalStr, setTotalStr] = useState('');
   const [savingsStr, setSavingsStr] = useState(String(previousMonth.savingsTarget));
   const [carryOver, setCarryOver] = useState(true);
@@ -36,12 +40,15 @@ export function MonthRolloverModal({ open, onClose, previousMonth, newYearMonth 
     }
   }, [open, previousMonth]);
 
+  const newCycleStart = cycleStartDate(newYearMonth, newAnchorDay);
+  const newCycleEnd = cycleEndDate(newYearMonth, newAnchorDay);
+
   const handleStart = async () => {
     const total = parseFloat(totalStr);
     const savings = parseFloat(savingsStr) || 0;
     if (total <= 0) return;
 
-    await performRollover(previousMonth, newYearMonth, total, savings, carryOver);
+    await performRollover(previousMonth, newYearMonth, total, savings, carryOver, newAnchorDay);
     onClose();
   };
 
@@ -49,7 +56,10 @@ export function MonthRolloverModal({ open, onClose, previousMonth, newYearMonth 
     <Modal open={open} onClose={onClose} title="New Month">
       <div className="space-y-4">
         <p className="text-sm text-gray-400">
-          Starting <span className="text-white font-medium">{newYearMonth}</span>
+          New cycle:{' '}
+          <span className="text-white font-medium">
+            {formatDate(newCycleStart)} → {formatDate(newCycleEnd)}
+          </span>
         </p>
 
         <div className="bg-gray-800 rounded-xl p-3 space-y-1">

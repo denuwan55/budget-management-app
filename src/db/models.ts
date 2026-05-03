@@ -1,8 +1,9 @@
 export interface Month {
   id?: number;
-  yearMonth: string;        // "2026-04"
+  yearMonth: string;        // "2026-04" — start-month of the cycle
   totalAvailable: number;
   savingsTarget: number;
+  anchorDay: number;        // 1-28; cycle starts on this day of yearMonth's calendar month
   createdAt: string;        // ISO 8601
   updatedAt: string;
 }
